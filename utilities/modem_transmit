@@ -1,0 +1,16 @@
+#!/bin/sh
+
+OUT="$(mktemp)"
+trap "rm -f '$OUT'" EXIT INT QUIT TERM
+
+python blinkenrocket.py $OUT "$@"
+
+case "$(uname -s)" in
+Darwin)
+    play $OUT
+    ;;
+Linux)
+    aplay $OUT
+    ;;
+esac
+
