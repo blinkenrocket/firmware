@@ -10,9 +10,6 @@
 
 typedef const unsigned char* glyph_t;
 
-const unsigned char PROGMEM chr_001[] = {0x08,0x00,0x04,0x22,0x02,0x22,0x04,0x00,0x00}; // happy smiley
-const unsigned char PROGMEM chr_002[] = {0x08,0x00,0x02,0x24,0x04,0x24,0x02,0x00,0x00}; // sad smiley
-const unsigned char PROGMEM chr_003[] = {0x05,0x18,0x24,0x12,0x24,0x18}; // heart
 const unsigned char PROGMEM chr_032[] = {0x03,0x00,0x00,0x00}; // <space>
 const unsigned char PROGMEM chr_033[] = {0x01,0x7D}; // !
 const unsigned char PROGMEM chr_034[] = {0x04,0x30,0x40,0x30,0x40}; // "
@@ -110,10 +107,10 @@ const unsigned char PROGMEM chr_125[] = {0x04,0x41,0x41,0x36,0x08}; // }
 const unsigned char PROGMEM chr_126[] = {0x06,0x20,0x40,0x40,0x20,0x20,0x40}; // ~
 
 const glyph_t font[] PROGMEM = {
-	chr_002, // special character for uncorrectable byte errors
-	chr_001,
-	chr_002,
-	chr_003,
+	chr_037, // special character for uncorrectable byte errors
+	chr_032,
+	chr_032,
+	chr_032,
 	chr_032,
 	chr_032,
 	chr_032,
