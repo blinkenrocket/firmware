@@ -29,7 +29,8 @@ The new pattern will not be loaded before the button has been released.
 ## "Transmission failure"
 
 A modem transmission was started, but not properly terminated. Make sure that
-your audio volume is set to 100%.
+your audio volume is set to 100%. If this does not work, please try either `modem_transmit`
+and/or the web-based editor.
 
 ## "Storage is empty"
 
@@ -63,3 +64,8 @@ Double-check parts and soldering (especially for U1, U2, C3, R4 and R5). If you
 are really sure that everything is soldered correctly, your EEPROM might be
 faulty (not as in data corruption, but as in "does not even acknowledge its
 presence anymore"). This is quite improbable, though.
+
+## Rocket does not respond
+
+Please remove and insert the battery again. Make sure that the battery has enough
+current and replcace the battery if the LED are dark.
