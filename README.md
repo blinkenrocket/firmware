@@ -63,7 +63,3 @@ Double-check parts and soldering (especially for U1, U2, C3, R4 and R5). If you
 are really sure that everything is soldered correctly, your EEPROM might be
 faulty (not as in data corruption, but as in "does not even acknowledge its
 presence anymore"). This is quite improbable, though.
-
-# License Notes
-
-Please note that early versions of the BlinkenRocket accidentially contained a copyright protected font. This was fixed on 30rd of May 2016. We're sorry for the inconvenience this has caused! If you have an old BlinkenRocket (soldered prior to the 30rd of May 2016), please upgrade your firmware. If you do not know how to do this and need assistance, please contact us through our info@ mail address. 
