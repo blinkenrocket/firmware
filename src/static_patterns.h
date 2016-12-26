@@ -66,7 +66,7 @@ const uint8_t PROGMEM timeoutPattern[] = {
 #else
 const uint8_t PROGMEM timeoutPattern[] = {
 	0x10, 0x15,
-	0xc0, 0x00,
+	0xe0, 0x00,
 	' ',   2, ' ', 'T', 'r', 'a', 'n', 's', 'm', 'i', 's', 's', 'i', 'o', 'n',
 	' ', 'e', 'r', 'r', 'o', 'r'
 };

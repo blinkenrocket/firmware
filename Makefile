@@ -1,5 +1,6 @@
 MCU ?= attiny88
-AVRDUDE_PROGRAMMER ?= usbasp
+#AVRDUDE_PROGRAMMER ?= usbasp
+AVRDUDE_PROGRAMMER ?= dragon_isp
 
 AVRCC ?= avr-gcc
 AVRCXX ?= avr-g++
@@ -24,7 +25,8 @@ CXXFLAGS += ${SHARED_FLAGS} -std=c++11 -fno-rtti -fno-exceptions
 ASFLAGS += ${MCU_FLAGS} -wA,--warn
 LDFLAGS += -Wl,--gc-sections
 
-AVRFLAGS += -U lfuse:w:0xee:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
+AVRFLAGS += -P usb -V
+#AVRFLAGS += -U lfuse:w:0xee:m -U hfuse:w:0xdf:m -U efuse:w:0xff:m
 AVRFLAGS += -U flash:w:build/main.hex
 #AVRFLAGS += -U eeprom:w:main.eep
 
@@ -34,7 +36,7 @@ CFILES   = $(wildcard src/*.c)
 CXXFILES = $(wildcard src/*.cc)
 OBJECTS  = ${CFILES:src/%.c=build/%.o} ${CXXFILES:src/%.cc=build/%.o} ${ASFILES:src/%.S=build/%.o}
 
-all: build build/main.elf
+all: build build/main.elf flash
 
 build:
 	mkdir -p build

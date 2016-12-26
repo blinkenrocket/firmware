@@ -83,8 +83,12 @@ class System {
 
 		enum TransmissionControl : uint8_t {
 			BYTE_END = 0x84,
-			BYTE_START = 0x99,
-			BYTE_PATTERN = 0xa9,
+			// BYTE_START = 0x99,
+			// BYTE_PATTERN = 0xa9,
+			BYTE_START1 = 0xa5,
+			BYTE_START2 = 0x5a,
+			BYTE_PATTERN1 = 0x0f,
+			BYTE_PATTERN2 = 0xf0,
 		};
 
 		enum ButtonMask : uint8_t {

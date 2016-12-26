@@ -21,6 +21,8 @@
 #include "system.h"
 #include "static_patterns.h"
 
+#define USE_ADC
+
 #define SHUTDOWN_THRESHOLD 2048
 
 System rocket;
@@ -32,8 +34,10 @@ uint8_t *rx_buf = disp_buf + sizeof(disp_buf) - 33;
 
 void System::initialize()
 {
+#ifndef USE_ADC        // only if not in ADC mode !
 	// disable ADC to save power
-	PRR |= _BV(PRADC);
+	PRR |= _BV(PRADC); 
+#endif
 
 	// dito
 	wdt_disable();
@@ -128,16 +132,109 @@ void System::receive(void)
 			remaining_bytes--;
 		}
 	}
-
+	
+	
 	switch(rxExpect) {
 		case START1:
-			if (rx_byte == BYTE_START)
+			if (rx_byte == BYTE_START1) {  //BYTE_START) {
 				rxExpect = START2;
+			}
+			break;
+		case START2:
+			if (rx_byte == BYTE_START2) {
+				PORTC ^= _BV(PC2);
+				rxExpect = NEXT_BLOCK;
+				storage.reset();
+				loadPattern_P(flashingPattern);
+				MCUSR &= ~_BV(WDRF);
+				cli();
+				// watchdog interrupt after 4 seconds
+				WDTCSR = _BV(WDCE) | _BV(WDE);
+				WDTCSR = _BV(WDIE) | _BV(WDP3);
+				sei();
+				} else {
+				if (rx_byte == BYTE_START1)  rxExpect = START2;
+				else rxExpect = START1;
+			}
+			break;
+		case NEXT_BLOCK:
+			if (rx_byte == BYTE_PATTERN1)
+			rxExpect = PATTERN2;
+			else if (rx_byte == BYTE_END) {
+				PORTC ^= _BV(PC2);
+				storage.sync();
+				current_anim_no = 0;
+				loadPattern(0);
+				rxExpect = START1;
+				wdt_disable();
+				modem.buffer_clear();   // added to avoid mess with framing bytes
+			} else rxExpect = START1;
+			break;
+		case PATTERN2:
+			if (rx_byte == BYTE_PATTERN2) {
+				rxExpect = HEADER1;
+				rx_pos = 0;
+			}
+			else rxExpect = START1;
+			break;
+		case HEADER1:
+			rxExpect = HEADER2;
+			remaining_bytes = (rx_byte & 0x0f) << 8;
+			break;
+		case HEADER2:
+			rxExpect = META1;
+			remaining_bytes += rx_byte;
+			wdt_reset();
+			break;
+		case META1:
+			rxExpect = META2;
+			break;
+		case META2:
+			rxExpect = DATA_FIRSTBLOCK;
+			// skip empty patterns (would bork because of remaining_bytes otherwise)
+			if (remaining_bytes == 0)
+			rxExpect = NEXT_BLOCK;
+			break;
+		case DATA_FIRSTBLOCK:
+			if (remaining_bytes == 0) {
+				rxExpect = NEXT_BLOCK;
+				storage.save(rx_buf);
+				} else if (rx_pos == 32) {
+				rxExpect = DATA;
+				rx_pos = 0;
+				storage.save(rx_buf);
+			}
+			break;
+		case DATA:
+			if (remaining_bytes == 0) {
+				rxExpect = NEXT_BLOCK;
+				storage.append(rx_buf);
+				} else if (rx_pos == 32) {
+				rx_pos = 0;
+				storage.append(rx_buf);
+				wdt_reset();
+			}
+			break;
+		default: rxExpect=START1;
+		break;
+	}
+}
+
+
+
+/*
+	switch(rxExpect) {
+		case START1:
+			if (rx_byte == BYTE_START) {
+				PORTC ^= _BV(PC2);
+				rxExpect = START2;
+			}
 			else
 				rxExpect = NEXT_BLOCK;
 			break;
 		case START2:
 			if (rx_byte == BYTE_START) {
+				PORTC ^= _BV(PC2);
 				rxExpect = PATTERN1;
 				storage.reset();
 				loadPattern_P(flashingPattern);
@@ -152,16 +249,20 @@ void System::receive(void)
 			}
 			break;
 		case NEXT_BLOCK:
-			if (rx_byte == BYTE_START)
+			if (rx_byte == BYTE_START) {
+				PORTC ^= _BV(PC2);
 				rxExpect = START2;
+			}
 			else if (rx_byte == BYTE_PATTERN)
 				rxExpect = PATTERN2;
 			else if (rx_byte == BYTE_END) {
+				PORTC ^= _BV(PC2);
 				storage.sync();
 				current_anim_no = 0;
 				loadPattern(0);
 				rxExpect = START1;
 				wdt_disable();
+				modem.buffer_clear();   // added to avoid mess with framing bytes
 			}
 			break;
 		case PATTERN1:
@@ -191,10 +292,8 @@ void System::receive(void)
 			break;
 		case META2:
 			rxExpect = DATA_FIRSTBLOCK;
-			/*
-			 * skip empty patterns (would bork because of remaining_bytes--
-			 * otherwise
-			 */
+			// skip empty patterns (would bork because of remaining_bytes otherwise)
+			 
 			if (remaining_bytes == 0)
 				rxExpect = NEXT_BLOCK;
 			break;
@@ -220,6 +319,8 @@ void System::receive(void)
 			break;
 	}
 }
+
+*/
 
 void System::loop()
 {
@@ -304,12 +405,18 @@ void System::shutdown()
 	// turn off display to indicate we're about to shut down
 	display.disable();
 
+	#ifdef USE_ADC        // only necessary when in ADC mode !
+		// disable ADC to save power
+		PRR |= _BV(PRADC); 
+	#endif
+
+
 	// actual naptime
 
 	// enable PCINT on PC3 (PCINT11) and PC7 (PCINT15) for wakeup
 	PCMSK1 |= _BV(PCINT15) | _BV(PCINT11);
 	PCICR |= _BV(PCIE1);
-
+	
 	// go to power-down mode
 	SMCR = _BV(SM1) | _BV(SE);
 	asm("sleep");
@@ -335,6 +442,12 @@ void System::shutdown()
 		_delay_ms(1);
 	}
 
+	#ifdef USE_ADC        // only necessary when in ADC mode !
+		// enable the ADC !
+		PRR &= ~_BV(PRADC); 
+	#endif
+
+
 	// finally, turn on the modem...
 	modem.enable();
 
@@ -345,6 +458,7 @@ void System::shutdown()
 void System::handleTimeout()
 {
 	modem.disable();
+	modem.buffer_clear();   // added to avoid mess with framing bytes
 	modem.enable();
 	rxExpect = START1;
 	current_anim_no = 0;
