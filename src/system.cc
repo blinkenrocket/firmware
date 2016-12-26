@@ -89,10 +89,12 @@ void System::loadPattern_buf(uint8_t *pattern)
 		active_anim.speed = 250 - (pattern[2] & 0xf0);
 		active_anim.delay = (pattern[2] & 0x0f );
 		active_anim.direction = pattern[3] >> 4;
+		active_anim.repeat = (pattern[3] & 0x0f);
 	} else if (active_anim.type == AnimationType::FRAMES) {
 		active_anim.speed = 250 - ((pattern[2] & 0x0f) << 4);
-		active_anim.delay = (pattern[3] & 0x0f);
+		active_anim.delay = pattern[3] >> 4;
 		active_anim.direction = 0;
+		active_anim.repeat = (pattern[3] & 0x0f);
 	}
 
 	active_anim.data = pattern + 4;
@@ -221,106 +223,6 @@ void System::receive(void)
 }
 
 
-
-/*
-	switch(rxExpect) {
-		case START1:
-			if (rx_byte == BYTE_START) {
-				PORTC ^= _BV(PC2);
-				rxExpect = START2;
-			}
-			else
-				rxExpect = NEXT_BLOCK;
-			break;
-		case START2:
-			if (rx_byte == BYTE_START) {
-				PORTC ^= _BV(PC2);
-				rxExpect = PATTERN1;
-				storage.reset();
-				loadPattern_P(flashingPattern);
-				MCUSR &= ~_BV(WDRF);
-				cli();
-				// watchdog interrupt after 4 seconds
-				WDTCSR = _BV(WDCE) | _BV(WDE);
-				WDTCSR = _BV(WDIE) | _BV(WDP3);
-				sei();
-			} else {
-				rxExpect = NEXT_BLOCK;
-			}
-			break;
-		case NEXT_BLOCK:
-			if (rx_byte == BYTE_START) {
-				PORTC ^= _BV(PC2);
-				rxExpect = START2;
-			}
-			else if (rx_byte == BYTE_PATTERN)
-				rxExpect = PATTERN2;
-			else if (rx_byte == BYTE_END) {
-				PORTC ^= _BV(PC2);
-				storage.sync();
-				current_anim_no = 0;
-				loadPattern(0);
-				rxExpect = START1;
-				wdt_disable();
-				modem.buffer_clear();   // added to avoid mess with framing bytes
-			}
-			break;
-		case PATTERN1:
-			if (rx_byte == BYTE_PATTERN)
-				rxExpect = PATTERN2;
-			else
-				rxExpect = NEXT_BLOCK;
-			break;
-		case PATTERN2:
-			rx_pos = 0;
-			if (rx_byte == BYTE_PATTERN)
-				rxExpect = HEADER1;
-			else
-				rxExpect = NEXT_BLOCK;
-			break;
-		case HEADER1:
-			rxExpect = HEADER2;
-			remaining_bytes = (rx_byte & 0x0f) << 8;
-			break;
-		case HEADER2:
-			rxExpect = META1;
-			remaining_bytes += rx_byte;
-			wdt_reset();
-			break;
-		case META1:
-			rxExpect = META2;
-			break;
-		case META2:
-			rxExpect = DATA_FIRSTBLOCK;
-			// skip empty patterns (would bork because of remaining_bytes otherwise)
-			 
-			if (remaining_bytes == 0)
-				rxExpect = NEXT_BLOCK;
-			break;
-		case DATA_FIRSTBLOCK:
-			if (remaining_bytes == 0) {
-				rxExpect = NEXT_BLOCK;
-				storage.save(rx_buf);
-			} else if (rx_pos == 32) {
-				rxExpect = DATA;
-				rx_pos = 0;
-				storage.save(rx_buf);
-			}
-			break;
-		case DATA:
-			if (remaining_bytes == 0) {
-				rxExpect = NEXT_BLOCK;
-				storage.append(rx_buf);
-			} else if (rx_pos == 32) {
-				rx_pos = 0;
-				storage.append(rx_buf);
-				wdt_reset();
-			}
-			break;
-	}
-}
-
-*/
 
 void System::loop()
 {

@@ -30,10 +30,6 @@ class System {
 		 */
 		uint8_t btn_debounce;
 
-		/**
-		 * Index of the currently active animation
-		 */
-		uint8_t current_anim_no;
 
 		/**
 		 * Shuts down the entire system. Shows a shutdown animation, waits
@@ -49,16 +45,6 @@ class System {
 		 */
 		void receive(void);
 
-		/**
-		 * Loads a pattern from the EEPROM and shows it on the display.
-		 * Loads the first 132 bytes (4 bytes header + 128 bytes data) of
-		 * the pattern into the global disp_buf variable, updates the
-		 * global active_anim to reflect the read metadata and calls
-		 * Display::show() to display the pattern.
-		 *
-		 * @param pattern_no index of pattern to show
-		 */
-		void loadPattern(uint8_t pattern_no);
 
 		/**
 		 * Show the pattern stored in pattern on the display.
@@ -143,6 +129,25 @@ class System {
 		 * received byte and END byte was receveid).
 		 */
 		void handleTimeout(void);
+
+		/**
+		 * Index of the currently active animation
+		 */
+		uint8_t current_anim_no;
+
+		/**
+		 * Loads a pattern from the EEPROM and shows it on the display.
+		 * Loads the first 132 bytes (4 bytes header + 128 bytes data) of
+		 * the pattern into the global disp_buf variable, updates the
+		 * global active_anim to reflect the read metadata and calls
+		 * Display::show() to display the pattern.
+		 *
+		 * @param pattern_no index of pattern to show
+		 */
+		void loadPattern(uint8_t pattern_no);
+
+
+
 };
 
 extern System rocket;
