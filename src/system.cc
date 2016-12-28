@@ -144,7 +144,7 @@ void System::receive(void)
 			break;
 		case START2:
 			if (rx_byte == BYTE_START2) {
-				PORTC ^= _BV(PC2);
+				// PORTC ^= _BV(PC2);
 				rxExpect = NEXT_BLOCK;
 				storage.reset();
 				loadPattern_P(flashingPattern);
@@ -163,7 +163,7 @@ void System::receive(void)
 			if (rx_byte == BYTE_PATTERN1)
 			rxExpect = PATTERN2;
 			else if (rx_byte == BYTE_END) {
-				PORTC ^= _BV(PC2);
+				// PORTC ^= _BV(PC2);
 				storage.sync();
 				current_anim_no = 0;
 				loadPattern(0);
