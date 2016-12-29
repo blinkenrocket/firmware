@@ -8,19 +8,28 @@ class modem:
 	# bits = [[3 * chr(0), 5 * chr(0)], [3 * chr(255), 5 * chr(255)]]
 	# sync = [17 * chr(0), 17 * chr(255)]
 
-	# bits = [[20 * chr(0), 40 * chr(0)], [20 * chr(255), 40 * chr(255)]]
-	# sync = [120 * chr(0), 120 * chr(255)]
+	sync = 10*chr(128);
+	slow = 72*chr(128);
 
-	slow = chr(128)
+	# Created short and long faded sine waves - I'm sure there is a better way to do this ;)
+	fastShort = chr(128)
+	for angle in range(18):
+		fastShort = fastShort + chr(128+int(angle*7*math.sin(math.radians(angle*10))))
 	for angle in range(36):
-		slow = slow + chr(128+int(40*math.sin(math.radians(angle*10))))
+		fastShort = fastShort + chr(128+int(126*math.sin(math.radians((angle+18)*10))))
+	for angle in range(18):
+		fastShort = fastShort + chr(128+int((126-angle*7)*math.sin(math.radians((angle+54)*10))))
 
-	fast = chr(128)
-	for angle in range(36):
-		fast = fast + chr(128+int(125*math.sin(math.radians(angle*30))))
+	fastLong = chr(128)
+	for angle in range(18):
+		fastLong = fastLong + chr(128+int(angle*7*math.sin(math.radians(angle*10))))
+	for angle in range(108):
+		fastLong = fastLong + chr(128+int(126*math.sin(math.radians((angle+18)*10))))
+	for angle in range(18):
+		fastLong = fastLong + chr(128+int((126-angle*7)*math.sin(math.radians((angle+126)*10))))
 
-	sync = [2*chr (128), 2*chr(128)]
-	bits =[[2*slow,4*slow],[2*fast,4*fast]]
+
+	bits =[[slow,2*slow],[fastShort,fastLong]]
 
 	# Variable to alternate high and low
 	hilo = 0
@@ -53,8 +62,7 @@ class modem:
 
 	# Generate one sync-pulse
 	def syncsignal(self):
-		self.hilo ^= 1
-		return self.sync[self.hilo]
+		return self.sync;
 
 	# Generate a number of sync signals
 	def generateSyncSignal(self, number):
@@ -101,18 +109,14 @@ class modem:
 				tmpdata.append(chr(self.hammingCalculateParity2416(ord(self.data[index]),ord(self.data[index+1]))))
 			self.data = tmpdata
 		# generate the audio itself
-		# add 1000ms of sync signal before the data
+		# add sync signal before the data
 		# (some sound cards take a while to produce a proper output signal)
-		sound = self.generateSyncSignal(100)
+		sound = self.generateSyncSignal(200)
 		# process the data and insert sync signal every 10 bytes
 		for byte in self.data:
 			sound += self.modemcode(ord(byte))
-			#self.cnt += 1
-			#if self.cnt == 9: # ! do not send sync inside (byte1 byte2 parity) triples
-		#		sound += self.generateSyncSignal(4)
-		#		self.cnt = 0
 		# add some sync signals in the end
-		sound += self.generateSyncSignal(4)
+		sound += self.generateSyncSignal(100)
 		return sound
 
 	def saveAudio(self,filename):
