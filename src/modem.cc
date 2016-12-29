@@ -150,91 +150,61 @@ void Modem::receive() {
 #define FREQ_LOW 1
 #define FREQ_HIGH 2
 #define NUMBER_OF_SAMPLES 8
-#define ACTIVITY_LOW_HIGH_THRESHOLD 700
-#define ACTIVITY_MIN_THRESHOLD 100
-#define NOISE_LEVEL 50
-#define MIN_PULSELEN 1
-#define MAX_PULSELEN 10
-#define PULSELEN_THRESHOLD 6
+#define ACTIVITY_THRESHOLD 100
+#define BITLEN_THRESHOLD 6
 
 void Modem::receiveADC() {
 
 	static uint8_t modem_bit = 0;
 	static uint8_t modem_byte = 0;
-	static uint8_t bitlength=0;
 
 	// some variables for sampling / frequency detection
-	int16_t delta;
-	static uint16_t activity=0, calib_max_activity=0;
-	static uint16_t low_high_threshold=ACTIVITY_LOW_HIGH_THRESHOLD;
-	static uint16_t min_threshold=ACTIVITY_MIN_THRESHOLD;
-	static uint16_t sampleValue=0, prevValue=0;
-	static uint8_t cnt=0,actFrequency=FREQ_NONE,prevFrequency=FREQ_NONE;
+	uint16_t activity;
+	static uint8_t bitlength=0, cnt=0;
+	static uint16_t sampleValue=512, prevValue, accu;
+	static uint8_t actFrequency=FREQ_NONE, prevFrequency=FREQ_NONE;
 	
 	prevValue=sampleValue;
 	sampleValue=ADC;		
-	delta= (sampleValue>prevValue) ? sampleValue-prevValue : prevValue-sampleValue;
-	activity+=delta;
-	
-	if (++cnt==NUMBER_OF_SAMPLES) {
-		cnt=0;
-		bitlength++;
+	accu += (sampleValue>prevValue) ? sampleValue-prevValue : prevValue-sampleValue;
+	if (++cnt < NUMBER_OF_SAMPLES) return;   // accumulate NUMBER_OF_SAMPLES values
 
-		if (activity < min_threshold) {        // no active sine wave detected
-			if (calib_max_activity) {
-				low_high_threshold=calib_max_activity>>1;
-				min_threshold= calib_max_activity>>4;
-				if (min_threshold<NOISE_LEVEL) min_threshold=NOISE_LEVEL;
-				calib_max_activity=0;
-			}
-			prevFrequency=FREQ_NONE;
-			activity=0;
-			modem_bit = 0;
-			modem_byte=0;
-			bitlength=0;
-			modem.buffer_clear();
-			PORTC &= ~ _BV(PC2);      // keep low during idle phase
-			return;
-		} 
+	activity=accu; 
+	cnt=0; accu=0;
 
-		if (activity > low_high_threshold) 
-			actFrequency=FREQ_HIGH;
-		else actFrequency=FREQ_LOW;
+	if (bitlength<100) bitlength++; 
 
-		if (activity>calib_max_activity) 
-			calib_max_activity=activity;
+	if ((activity < ACTIVITY_THRESHOLD) && (bitlength > BITLEN_THRESHOLD<<2)) {    // no active sine wave detected
+		prevFrequency=FREQ_NONE;
+		modem_bit = 0;
+		modem_byte=0;
+		modem.buffer_clear();
+		PORTC &= ~ _BV(PC2);        // keep test signal low during idle phase
+		return;
+	} 
 
-		activity=0;  // reset activity every NUMBER_OF_SAMPLES
+	if (activity >= ACTIVITY_THRESHOLD) 
+		actFrequency=FREQ_HIGH;
+	else actFrequency=FREQ_LOW;
 
-		if (actFrequency != prevFrequency)
-		{
-			uint8_t modem_pulselen = bitlength;  // pluselen is expressed in bitlength
-			bitlength=0;
+	if (actFrequency != prevFrequency)  // bit change detected !
+	{
+		if (prevFrequency!=FREQ_NONE) {   // skip first edge (no valid bitlength yet!)
 
-			if (prevFrequency==FREQ_NONE) {
-				prevFrequency=actFrequency;
-				return;
-			}	
-			prevFrequency=actFrequency;
-			
-			if ((modem_pulselen > MIN_PULSELEN) && (modem_pulselen < MAX_PULSELEN))  // sanity check for valid bit times
-			{
-				PORTC ^= _BV(PC2);   // show actual bit detection
-				modem_byte = (modem_byte >> 1) | (modem_pulselen < PULSELEN_THRESHOLD ? 0x00 : 0x80);
+				modem_byte = (modem_byte >> 1) | (bitlength < BITLEN_THRESHOLD ? 0x00 : 0x80);
+				PORTC ^= _BV(PC2);   // show actual bit detection for debugging
 				
 				// Check if we received complete byte and store it in ring buffer
 				if (!(++modem_bit % 0x08)) 
 				{
 					buffer_put(modem_byte);
 					#ifdef SPI_DBG
-						// SPDR = calib_max_activity>>4; 
-						// SPDR = modem_byte;
-						// SPDR = modem_pulselen;
-						// SPDR = sav_act;
+						SPDR = modem_byte;  // output detected byte to SPI for debugging
 					#endif
 				}
-			}
 		}
+		prevFrequency=actFrequency;
+		bitlength=0;
 	}
 }
 
