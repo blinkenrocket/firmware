@@ -1,8 +1,13 @@
-/* Name: modem.c
+/* Name: modem.cc
+ * Version: 2.0
  *
  * Audio modem for Attiny85 & other AVR chips with modifications
  *
  * Author: Jari Tulilahti
+ * 
+ * Modifications for V2.0 (sine-wave-based transmission and ADC/sampling) 
+ * by Chris Veigl, Overflo, Chris Hager 
+ *
  * Copyright: 2014 Rakettitiede Oy and 2016 Daniel Friesel
  * License: LGPLv3, see COPYING, and COPYING.LESSER -files for more info
  */
@@ -14,9 +19,10 @@
 
 extern FECModem modem;
 
-#define USE_ADC
-// #define SPI_DBG
 
+// #define SPI_DBG
+// uncomment this for debug output via SPI 
+// use arduino-sketch in folder /utilities/SPI_debug to see serial console output
 
 bool Modem::newTransmission()
 {
@@ -67,20 +73,18 @@ void Modem::buffer_clear() {                 // needed that to avoid mess with f
 void Modem::enable()  {
 	/* Enable R1 */
 	DDRA  |= _BV(PA3);
-	PORTA |= _BV(PA3);
-	
-#ifdef USE_ADC
+	PORTA |= _BV(PA3);	
 	DDRC |= _BV(PC2);  // use E3 and E2 to indicate bit detection 
-	// PORTC |=  _BV(PC2);
 
 	/* configure and enable ADC   */
-	ADCSRA = _BV(ADEN) + _BV(ADIE) + _BV(ADPS2) +  _BV(ADPS0) +_BV(ADATE) ;      //  ADC prescaler 32 = 250KhZ - actually a bit overclocked ...
+	ADCSRA = _BV(ADEN) + _BV(ADIE) + _BV(ADPS2) +  _BV(ADPS0) +_BV(ADATE) ; 
+	//  ADC prescaler 32 = 250KhZ - actually a bit overclocked ...
 	ADMUX = _BV(REFS0) + 6;  // chn6 = PA0 / ADC6
 	/*  start free running mode ** */
 	ADCSRA |= _BV(ADSC);	
-#endif
+
 #ifdef SPI_DBG
-	TIMSK0 &= ~_BV(TOIE0); // disable display! (use SPI for debugging output)
+	TIMSK0 &= ~_BV(TOIE0); // disable Led display! (use SPI for debugging output)
 	PORTB=0; PORTD=255;
 	PORTA &= ~_BV(PA1);   // slave select enable
 	SPCR = (1<<SPE)|(1<<MSTR)|(1<<SPR0)|(1<<SPR1);
@@ -91,8 +95,8 @@ void Modem::enable()  {
 	/* Modem pin as input */
 	MODEM_DDR &= ~_BV(MODEM_PIN);
 	/* Enable Pin Change Interrupts and PCINT for MODEM_PIN */
-	MODEM_PCMSK |= _BV(MODEM_PCINT);
-	PCICR |= _BV(MODEM_PCIE);
+	//MODEM_PCMSK |= _BV(MODEM_PCINT);
+	//PCICR |= _BV(MODEM_PCIE);
 }
 
 void Modem::disable()
@@ -100,14 +104,14 @@ void Modem::disable()
 	PORTA &= ~_BV(PA3);
 	DDRA  &= ~_BV(PA3);
 
-#ifdef USE_ADC
+	// disable ADC
 	DDRC &= ~ _BV(PC2);
 	ADCSRA &= ~ _BV(ADEN);
-#endif
+
 #ifdef SPI_DBG
 	PORTA |= _BV(PA1);  // slave select disable
 	SPCR=0;
-	TIMSK0 |= _BV(TOIE0); // enable display !
+	TIMSK0 |= _BV(TOIE0); // enable Led display !
 #endif
 
 }
@@ -210,16 +214,13 @@ void Modem::receiveADC() {
 
 
 /*
- * Pin Change Interrupt Vector. This is The Modem.
+ * Pin Change Interrupt Vector. This is for wakeup.
  */
 ISR(PCINT3_vect) {
-#ifndef USE_ADC
-	modem.receive();
-#endif
 }
 
 /*
- * ADC Interrupt Vector. 
+ * ADC Interrupt Vector.  This is used by te modem. 
  */
 ISR(ADC_vect) {
 	modem.receiveADC();

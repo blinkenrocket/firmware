@@ -1,5 +1,9 @@
-/*
+/* Name: system.cc
+ * Version: 2.0
  * Copyright (C) 2016 by Daniel Friesel
+ *
+ * Modifications for V2.0 (sine-wave-based transmission and ADC/sampling) 
+ * by Chris Veigl, Overflo, Chris Hager 
  *
  * License: You may use, redistribute and/or modify this file under the terms
  * of either:
@@ -21,8 +25,6 @@
 #include "system.h"
 #include "static_patterns.h"
 
-#define USE_ADC
-
 #define SHUTDOWN_THRESHOLD 2048
 
 System rocket;
@@ -34,11 +36,6 @@ uint8_t *rx_buf = disp_buf + sizeof(disp_buf) - 33;
 
 void System::initialize()
 {
-#ifndef USE_ADC        // only if not in ADC mode !
-	// disable ADC to save power
-	PRR |= _BV(PRADC); 
-#endif
-
 	// dito
 	wdt_disable();
 
@@ -136,15 +133,16 @@ void System::receive(void)
 	}
 	
 	
+	// parser for new V2.0 protocol, see /docs/blinkenrocket_debugging.pdf
 	switch(rxExpect) {
 		case START1:
-			if (rx_byte == BYTE_START1) {  //BYTE_START) {
+			if (rx_byte == BYTE_START1) { 
 				rxExpect = START2;
 			}
 			break;
 		case START2:
 			if (rx_byte == BYTE_START2) {
-				// PORTC ^= _BV(PC2);
+				// PORTC ^= _BV(PC2);   // indicate frame start detection
 				rxExpect = NEXT_BLOCK;
 				storage.reset();
 				loadPattern_P(flashingPattern);
@@ -163,7 +161,7 @@ void System::receive(void)
 			if (rx_byte == BYTE_PATTERN1)
 			rxExpect = PATTERN2;
 			else if (rx_byte == BYTE_END) {
-				// PORTC ^= _BV(PC2);
+				// PORTC ^= _BV(PC2);   // indicate frame end detection 
 				storage.sync();
 				current_anim_no = 0;
 				loadPattern(0);
@@ -307,11 +305,8 @@ void System::shutdown()
 	// turn off display to indicate we're about to shut down
 	display.disable();
 
-	#ifdef USE_ADC        // only necessary when in ADC mode !
-		// disable ADC to save power
-		PRR |= _BV(PRADC); 
-	#endif
-
+	// disable ADC to save power
+	PRR |= _BV(PRADC); 
 
 	// actual naptime
 
@@ -344,11 +339,8 @@ void System::shutdown()
 		_delay_ms(1);
 	}
 
-	#ifdef USE_ADC        // only necessary when in ADC mode !
-		// enable the ADC !
-		PRR &= ~_BV(PRADC); 
-	#endif
-
+	// enable the ADC !
+	PRR &= ~_BV(PRADC); 
 
 	// finally, turn on the modem...
 	modem.enable();

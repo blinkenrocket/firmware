@@ -1,5 +1,9 @@
 # firmware
-Firmware for blinkenrocket
+Firmware for blinkenrocket, V2.0
+
+Modifications for V2.0 (sine-wave-based transmission and ADC/sampling) 
+by Chris Veigl, Overflo, Chris Hager 
+
 
 Use `make && sudo make program` to flash a blinkenrocket and use the web
 editor on <http://blinkenrocket.de/> to load patterns.
@@ -29,8 +33,9 @@ The new pattern will not be loaded before the button has been released.
 ## "Transmission failure"
 
 A modem transmission was started, but not properly terminated. Make sure that
-your audio volume is set to 100%. If this does not work, please try either `modem_transmit`
-and/or the web-based editor.
+your audio volume is set to 100%. If this does not work, please try 80% or 75%.
+you can use either `modem_transmit` or the web-based editor 
+(see github repository blinkenrocket-webedit-react).
 
 ## "Storage is empty"
 
@@ -39,8 +44,9 @@ The storage does not contain any patterns yet. Use `modem_transmit` or
 
 ## Modem transmissions don't work at all
 
-Make sure that your audio volume is set to 100%. If possible, try transmitting
-from another device.
+Make sure that your audio volume is set to 75-100%. 
+Try if you hear the sound if the audio cable is unplugged from the headphone jack.
+If transmission fails permanently please try from another device.
 
 ## Rocket does not turn on
 
