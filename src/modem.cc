@@ -154,7 +154,7 @@ void Modem::receive() {
 #define FREQ_LOW 1
 #define FREQ_HIGH 2
 #define NUMBER_OF_SAMPLES 8
-#define ACTIVITY_THRESHOLD 100
+#define ACTIVITY_THRESHOLD 150
 #define BITLEN_THRESHOLD 6
 
 void Modem::receiveADC() {

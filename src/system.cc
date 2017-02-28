@@ -256,6 +256,7 @@ void System::loop()
 		* when the user actually wants to press the shutdown combo.
 		*/
 		if ((PINC & (_BV(PC3) | _BV(PC7))) == (_BV(PC3) | _BV(PC7))) {
+			cli();
 			if (btnMask == BUTTON_RIGHT) {
 				current_anim_no = (current_anim_no + 1) % storage.numPatterns();
 				loadPattern(current_anim_no);
@@ -267,6 +268,7 @@ void System::loop()
 				loadPattern(current_anim_no);
 			}
 			btnMask = BUTTON_NONE;
+			sei();
 			/*
 			 * Ignore keypresses for 25ms to work around bouncing buttons
 			 */
