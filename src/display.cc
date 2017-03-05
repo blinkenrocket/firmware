@@ -16,8 +16,12 @@
 #include "display.h"
 #include "font.h"
 #include "storage.h"
+#include "system.h"
 
 Display display;
+
+extern System rocket;
+
 
 Display::Display()
 {
@@ -134,12 +138,21 @@ void Display::update() {
 						&& (str_pos > ((current_anim->length - 1) % 128))) {
 					str_chunk = 0;
 					str_pos = 0;
+
+
 					if (current_anim->delay > 0) {
 						status = PAUSED;
 						update_threshold = 244;
 					}
 					if (current_anim->length > 128) {
 						storage.loadChunk(str_chunk, current_anim->data);
+					}
+
+					if (current_anim->repeat) {
+						if (++repeat_cnt == current_anim->repeat) { 
+							rocket.current_anim_no = (rocket.current_anim_no + 1) % storage.numPatterns();
+							rocket.loadPattern(rocket.current_anim_no);
+						}
 					}
 				/*
 				 * Otherwise, check whether the pattern is split into
@@ -173,6 +186,14 @@ void Display::update() {
 						} else {
 							str_pos = (current_anim->length - 1) % 128;
 						}
+						if (current_anim->repeat) {
+							if (++repeat_cnt == current_anim->repeat) { 
+								rocket.current_anim_no = (rocket.current_anim_no + 1) % storage.numPatterns();
+								rocket.loadPattern(rocket.current_anim_no);
+							}
+						}
+
+
 					/*
 					 * Otherwise, we reached the end of the active chunk
 					 */
@@ -204,6 +225,7 @@ void Display::reset()
 	for (uint8_t i = 0; i < 8; i++)
 		disp_buf[i] = 0xff;
 	update_cnt = 0;
+	repeat_cnt = 0;
 	str_pos = 0;
 	str_chunk = 0;
 	char_pos = -1;

@@ -77,6 +77,9 @@ class Modem {
 		 * Do not call this function yourself.
 		 */
 		void receive(void);
+		
+		void receiveADC(void);   // added for signal decoding via ADC
+		void buffer_clear(void);  // clear the receive buffer
 };
 
 #endif /* MODEM_H_ */

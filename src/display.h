@@ -25,6 +25,7 @@ enum class AnimationType : uint8_t {
  * sequences of frames.
  */
 struct animation {
+
 	/**
 	 * Type of patern/animation described in this struct. Controls the
 	 * behaviour of Display::multiplex() and Display::update().
@@ -60,6 +61,11 @@ struct animation {
 	 * Scroll mode / direction. Must be set to 0 if type != TEXT.
 	 */
 	uint8_t direction;
+
+	/**
+	 * Number of repeats (used for autoskip function), 0 = endless.
+	 */
+	uint8_t repeat;
 
 	/**
 	 * * If type == AnimationType::TEXT: pointer to an arary containing the
@@ -154,6 +160,12 @@ class Display {
 		 */
 		int8_t char_pos;
 
+		/**
+		 * Internal repeat counter (for autoskip function). 
+		 */
+		uint8_t repeat_cnt;
+
+
 		enum AnimationStatus : uint8_t {
 			RUNNING,
 			SCROLL_BACK,
@@ -221,3 +233,4 @@ class Display {
 };
 
 extern Display display;
+

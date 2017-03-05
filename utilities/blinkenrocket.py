@@ -1,16 +1,41 @@
 #!/usr/bin/env python
 
-import sys, wave
+import sys, wave, math
 
 class modem:
 
-	# Modem specific constants
-	bits = [[3 * chr(0), 5 * chr(0)], [3 * chr(255), 5 * chr(255)]]
-	sync = [17 * chr(0), 17 * chr(255)]
+	# Modem specific constants  original
+	# bits = [[3 * chr(0), 5 * chr(0)], [3 * chr(255), 5 * chr(255)]]
+	# sync = [17 * chr(0), 17 * chr(255)]
+
+	sync = 10*chr(128);
+	slow = 72*chr(128);
+
+	# Created short and long faded sine waves - I'm sure there is a better way to do this ;)
+	fastShort = chr(128)
+	for angle in range(18):
+		fastShort = fastShort + chr(128+int(angle*7*math.sin(math.radians(angle*10))))
+	for angle in range(36):
+		fastShort = fastShort + chr(128+int(126*math.sin(math.radians((angle+18)*10))))
+	for angle in range(18):
+		fastShort = fastShort + chr(128+int((126-angle*7)*math.sin(math.radians((angle+54)*10))))
+
+	fastLong = chr(128)
+	for angle in range(18):
+		fastLong = fastLong + chr(128+int(angle*7*math.sin(math.radians(angle*10))))
+	for angle in range(108):
+		fastLong = fastLong + chr(128+int(126*math.sin(math.radians((angle+18)*10))))
+	for angle in range(18):
+		fastLong = fastLong + chr(128+int((126-angle*7)*math.sin(math.radians((angle+126)*10))))
+
+
+	bits =[[slow,2*slow],[fastShort,fastLong]]
+
 	# Variable to alternate high and low
 	hilo = 0
 	supportedFrequencies = [16000,22050,24000,32000,44100,48000]
 	cnt = 0
+	
 	# Data variables
 	data = []
 	parity = True
@@ -37,8 +62,7 @@ class modem:
 
 	# Generate one sync-pulse
 	def syncsignal(self):
-		self.hilo ^= 1
-		return self.sync[self.hilo]
+		return self.sync;
 
 	# Generate a number of sync signals
 	def generateSyncSignal(self, number):
@@ -85,18 +109,14 @@ class modem:
 				tmpdata.append(chr(self.hammingCalculateParity2416(ord(self.data[index]),ord(self.data[index+1]))))
 			self.data = tmpdata
 		# generate the audio itself
-		# add 1000ms of sync signal before the data
+		# add sync signal before the data
 		# (some sound cards take a while to produce a proper output signal)
-		sound = self.generateSyncSignal(3000)
+		sound = self.generateSyncSignal(200)
 		# process the data and insert sync signal every 10 bytes
 		for byte in self.data:
 			sound += self.modemcode(ord(byte))
-			self.cnt += 1
-			if self.cnt == 9: # ! do not send sync inside (byte1 byte2 parity) triples
-				sound += self.generateSyncSignal(4)
-				self.cnt = 0
 		# add some sync signals in the end
-		sound += self.generateSyncSignal(4)
+		sound += self.generateSyncSignal(100)
 		return sound
 
 	def saveAudio(self,filename):
@@ -193,10 +213,11 @@ class animationFrame(Frame):
 
 
 class blinkenrocket():
-
 	eeprom_size = 65536
-	startcode = chr(0x99)
-	patterncode = chr(0xA9)
+	startcode1 = chr(0xA5)
+	startcode2 = chr(0x5A)
+	patterncode1 = chr(0x0f)
+	patterncode2 = chr(0xf0)
 	endcode = chr(0x84)
 	frames = []
 
@@ -210,11 +231,11 @@ class blinkenrocket():
 			self.frames.append(frame)
 
 	def getMessage(self):
-		output = [self.startcode, self.startcode]
+		output = [self.startcode1, self.startcode1, self.startcode1, self.startcode2]
 		for frame in self.frames:
-			output.extend([self.patterncode,self.patterncode])
+			output.extend([self.patterncode1,self.patterncode2])
 			output.extend(frame.getRepresentation())
-		output.extend([self.endcode,self.endcode])
+		output.extend([self.endcode,self.endcode,self.endcode])
 		return output
 
 
@@ -226,8 +247,30 @@ if __name__ == '__main__':
 
 	for message in sys.argv[2:]:
 		b.addFrame(textFrame(message, speed=13))
+	b.addFrame(textFrame(" Blinkenrocket Test Scroller  !!! "))
+	b.addFrame(textFrame(" ... and another one  !!! "))
 	b.addFrame(textFrame(" \x04 "))
 	b.addFrame(animationFrame(map(lambda x : chr(x), [0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255]), speed=0))
+	m.setData(b.getMessage())
+	m.saveAudio(sys.argv[1])
+	print b.getMessage()
+
+'''
+	b.addFrame(animationFrame(map(lambda x : chr(x), [
+	  0,   0,   0,  24,  24,   0,   0,   0,
+	  0,   0,  60,  36,  36,  60,   0,   0,
+	  0, 126,  66,  66,  66,  66, 126,   0,
+	255, 129, 129, 129, 129, 129, 129, 255,
+	  0,   0,   0,   0,   0,   0,   0,   0,
+	]), speed=10, delay=1))
+	b.addFrame(animationFrame(map(lambda x : chr(x), [
+	  0,   0,   0,  24,  24,   0,   0,   0,
+	  0,   0,  60,  36,  36,  60,   0,   0,
+	  0, 126,  66,  66,  66,  66, 126,   0,
+	255, 129, 129, 129, 129, 129, 129, 255,
+	  0,   0,   0,   0,   0,   0,   0,   0,
+	]), speed=14, delay=1))
+
 	b.addFrame(animationFrame(map(lambda x : chr(x), [
 	  1,   0,   0,   0,   0,   0,   0,   0,
 	  0,   1,   0,   0,   0,   0,   0,   0,
@@ -299,17 +342,6 @@ if __name__ == '__main__':
 	255, 129, 129, 129, 129, 129, 129, 255,
 	  0,   0,   0,   0,   0,   0,   0,   0,
 	]), speed=15, delay=1))
-	b.addFrame(animationFrame(map(lambda x : chr(x), [
-	  0,   0,   0,  24,  24,   0,   0,   0,
-	  0,   0,  60,  36,  36,  60,   0,   0,
-	  0, 126,  66,  66,  66,  66, 126,   0,
-	255, 129, 129, 129, 129, 129, 129, 255,
-	  0,   0,   0,   0,   0,   0,   0,   0,
-	]), speed=14, delay=1))
-
-	m.setData(b.getMessage())
-	m.saveAudio(sys.argv[1])
-
-	#print b.getMessage()
+'''
 
 

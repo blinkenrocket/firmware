@@ -1,5 +1,9 @@
-/*
+/* Name: system.cc
+ * Version: 2.0
  * Copyright (C) 2016 by Daniel Friesel
+ *
+ * Modifications for V2.0 (sine-wave-based transmission and ADC/sampling) 
+ * by Chris Veigl, Overflo, Chris Hager 
  *
  * License: You may use, redistribute and/or modify this file under the terms
  * of either:
@@ -32,9 +36,6 @@ uint8_t *rx_buf = disp_buf + sizeof(disp_buf) - 33;
 
 void System::initialize()
 {
-	// disable ADC to save power
-	PRR |= _BV(PRADC);
-
 	// dito
 	wdt_disable();
 
@@ -85,10 +86,12 @@ void System::loadPattern_buf(uint8_t *pattern)
 		active_anim.speed = 250 - (pattern[2] & 0xf0);
 		active_anim.delay = (pattern[2] & 0x0f );
 		active_anim.direction = pattern[3] >> 4;
+		active_anim.repeat = (pattern[3] & 0x0f);
 	} else if (active_anim.type == AnimationType::FRAMES) {
 		active_anim.speed = 250 - ((pattern[2] & 0x0f) << 4);
-		active_anim.delay = (pattern[3] & 0x0f);
+		active_anim.delay = pattern[3] >> 4;
 		active_anim.direction = 0;
+		active_anim.repeat = (pattern[3] & 0x0f);
 	}
 
 	active_anim.data = pattern + 4;
@@ -128,17 +131,19 @@ void System::receive(void)
 			remaining_bytes--;
 		}
 	}
-
+	
+	
+	// parser for new V2.0 protocol, see /docs/blinkenrocket_debugging.pdf
 	switch(rxExpect) {
 		case START1:
-			if (rx_byte == BYTE_START)
+			if (rx_byte == BYTE_START1) { 
 				rxExpect = START2;
-			else
-				rxExpect = NEXT_BLOCK;
+			}
 			break;
 		case START2:
-			if (rx_byte == BYTE_START) {
-				rxExpect = PATTERN1;
+			if (rx_byte == BYTE_START2) {
+				// PORTC ^= _BV(PC2);   // indicate frame start detection
+				rxExpect = NEXT_BLOCK;
 				storage.reset();
 				loadPattern_P(flashingPattern);
 				MCUSR &= ~_BV(WDRF);
@@ -147,35 +152,30 @@ void System::receive(void)
 				WDTCSR = _BV(WDCE) | _BV(WDE);
 				WDTCSR = _BV(WDIE) | _BV(WDP3);
 				sei();
-			} else {
-				rxExpect = NEXT_BLOCK;
+				} else {
+				if (rx_byte == BYTE_START1)  rxExpect = START2;
+				else rxExpect = START1;
 			}
 			break;
 		case NEXT_BLOCK:
-			if (rx_byte == BYTE_START)
-				rxExpect = START2;
-			else if (rx_byte == BYTE_PATTERN)
-				rxExpect = PATTERN2;
+			if (rx_byte == BYTE_PATTERN1)
+			rxExpect = PATTERN2;
 			else if (rx_byte == BYTE_END) {
+				// PORTC ^= _BV(PC2);   // indicate frame end detection 
 				storage.sync();
 				current_anim_no = 0;
 				loadPattern(0);
 				rxExpect = START1;
 				wdt_disable();
-			}
-			break;
-		case PATTERN1:
-			if (rx_byte == BYTE_PATTERN)
-				rxExpect = PATTERN2;
-			else
-				rxExpect = NEXT_BLOCK;
+				modem.buffer_clear();   // added to avoid mess with framing bytes
+			} else rxExpect = START1;
 			break;
 		case PATTERN2:
-			rx_pos = 0;
-			if (rx_byte == BYTE_PATTERN)
+			if (rx_byte == BYTE_PATTERN2) {
 				rxExpect = HEADER1;
-			else
-				rxExpect = NEXT_BLOCK;
+				rx_pos = 0;
+			}
+			else rxExpect = START1;
 			break;
 		case HEADER1:
 			rxExpect = HEADER2;
@@ -191,18 +191,15 @@ void System::receive(void)
 			break;
 		case META2:
 			rxExpect = DATA_FIRSTBLOCK;
-			/*
-			 * skip empty patterns (would bork because of remaining_bytes--
-			 * otherwise
-			 */
+			// skip empty patterns (would bork because of remaining_bytes otherwise)
 			if (remaining_bytes == 0)
-				rxExpect = NEXT_BLOCK;
+			rxExpect = NEXT_BLOCK;
 			break;
 		case DATA_FIRSTBLOCK:
 			if (remaining_bytes == 0) {
 				rxExpect = NEXT_BLOCK;
 				storage.save(rx_buf);
-			} else if (rx_pos == 32) {
+				} else if (rx_pos == 32) {
 				rxExpect = DATA;
 				rx_pos = 0;
 				storage.save(rx_buf);
@@ -212,14 +209,18 @@ void System::receive(void)
 			if (remaining_bytes == 0) {
 				rxExpect = NEXT_BLOCK;
 				storage.append(rx_buf);
-			} else if (rx_pos == 32) {
+				} else if (rx_pos == 32) {
 				rx_pos = 0;
 				storage.append(rx_buf);
 				wdt_reset();
 			}
 			break;
+		default: rxExpect=START1;
+		break;
 	}
 }
+
+
 
 void System::loop()
 {
@@ -255,6 +256,7 @@ void System::loop()
 		* when the user actually wants to press the shutdown combo.
 		*/
 		if ((PINC & (_BV(PC3) | _BV(PC7))) == (_BV(PC3) | _BV(PC7))) {
+			cli();
 			if (btnMask == BUTTON_RIGHT) {
 				current_anim_no = (current_anim_no + 1) % storage.numPatterns();
 				loadPattern(current_anim_no);
@@ -266,6 +268,7 @@ void System::loop()
 				loadPattern(current_anim_no);
 			}
 			btnMask = BUTTON_NONE;
+			sei();
 			/*
 			 * Ignore keypresses for 25ms to work around bouncing buttons
 			 */
@@ -304,12 +307,15 @@ void System::shutdown()
 	// turn off display to indicate we're about to shut down
 	display.disable();
 
+	// disable ADC to save power
+	PRR |= _BV(PRADC); 
+
 	// actual naptime
 
 	// enable PCINT on PC3 (PCINT11) and PC7 (PCINT15) for wakeup
 	PCMSK1 |= _BV(PCINT15) | _BV(PCINT11);
 	PCICR |= _BV(PCIE1);
-
+	
 	// go to power-down mode
 	SMCR = _BV(SM1) | _BV(SE);
 	asm("sleep");
@@ -335,6 +341,9 @@ void System::shutdown()
 		_delay_ms(1);
 	}
 
+	// enable the ADC !
+	PRR &= ~_BV(PRADC); 
+
 	// finally, turn on the modem...
 	modem.enable();
 
@@ -345,6 +354,7 @@ void System::shutdown()
 void System::handleTimeout()
 {
 	modem.disable();
+	modem.buffer_clear();   // added to avoid mess with framing bytes
 	modem.enable();
 	rxExpect = START1;
 	current_anim_no = 0;
