@@ -60,7 +60,10 @@ void System::initialize()
 	sei();
 
 	current_anim_no = 0;
-	loadPattern(0);
+
+        loadPattern_P(turnonPattern);
+
+	//loadPattern(0);
 }
 
 void System::loadPattern_P(const uint8_t *pattern_ptr)
@@ -299,7 +302,7 @@ void System::shutdown()
 		display.update();
 
 	// and some more to debounce the buttons (and finish powerdown animation)
-	for (i = 0; i < 200; i++) {
+	for (i = 0; i < 100; i++) {
 		display.update();
 		_delay_ms(1);
 	}
