@@ -10,7 +10,15 @@
 
 #include <stdlib.h>
 
+// to display firmware version (v2.1) when storage is empty on first turn on
+#define FW_REV_MAJOR  2
+#define FW_REV_MINOR  1
+
+
+
 #define SHUTDOWN_THRESHOLD 2048
+
+
 
 /**
  * Contains the system idle loop. Checks for button presses, handles
