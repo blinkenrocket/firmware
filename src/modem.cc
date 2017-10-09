@@ -154,28 +154,22 @@ void Modem::receive() {
 #define FREQ_LOW 1
 #define FREQ_HIGH 2
 #define NUMBER_OF_SAMPLES 8
+#define ACTIVITY_THRESHOLD 150
 #define BITLEN_THRESHOLD 6
 
 void Modem::receiveADC() {
 
-    static uint16_t ACTIVITY_THRESHOLD=80;
 	static uint8_t modem_bit = 0;
 	static uint8_t modem_byte = 0;
 
 	// some variables for sampling / frequency detection
 	uint16_t activity;
 	static uint8_t bitlength=0, cnt=0;
-	static uint16_t sampleValue=512, max_sampleValue=550; 
-	static uint16_t prevValue, accu;
+	static uint16_t sampleValue=512, prevValue, accu;
 	static uint8_t actFrequency=FREQ_NONE, prevFrequency=FREQ_NONE;
 	
 	prevValue=sampleValue;
-	sampleValue=ADC;
-	if (sampleValue > max_sampleValue) {
-	  max_sampleValue=sampleValue;
-	  ACTIVITY_THRESHOLD=50+(max_sampleValue>>3);  //  activity threshold related to max amplitude !
-	}
-	  
+	sampleValue=ADC;		
 	accu += (sampleValue>prevValue) ? sampleValue-prevValue : prevValue-sampleValue;
 	if (++cnt < NUMBER_OF_SAMPLES) return;   // accumulate NUMBER_OF_SAMPLES values
 
@@ -186,11 +180,10 @@ void Modem::receiveADC() {
 
 	if ((activity < ACTIVITY_THRESHOLD) && (bitlength > BITLEN_THRESHOLD<<2)) {    // no active sine wave detected
 		prevFrequency=FREQ_NONE;
-		max_sampleValue=550;       // reset calculation of max amplitude
 		modem_bit = 0;
 		modem_byte=0;
 		modem.buffer_clear();
-		PORTC &= ~ _BV(PC2);      // keep test signal low during idle phase
+		PORTC &= ~ _BV(PC2);        // keep test signal low during idle phase
 		return;
 	} 
 
