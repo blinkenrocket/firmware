@@ -13,6 +13,9 @@
 
 #include <avr/pgmspace.h>
 
+//Auskommentieren fuer deutsche Texte
+//#define LANG_DE 1
+
 /*
  * Note: Static patterns must not be longer than 128 bytes (headers excluded).
  * See MessageSpecification.md for the meaning of their headers.
@@ -33,7 +36,6 @@ const uint8_t PROGMEM shutdownPattern[] = {
 
 
 
-// overflo
 const uint8_t PROGMEM turnonPattern[] = {
         0x20, 0x40,
         0x0e, 0x0f,
@@ -61,19 +63,24 @@ const uint8_t PROGMEM flashingPattern[] = {
 const uint8_t PROGMEM emptyPattern[] = {
 	0x10, 0x29,
 	0xc0, 0x00,
-	' ',   1, ' ', 'B', 'l', 'i', 'n', 'k', 'e', 'n', 'r', 'o', 'c', 'k', 'e',
-	't', ' ', 'v', '1', '.', '1', ' ', '-', ' ', 'S', 'p', 'e', 'i', 'c', 'h',
-	'e', 'r', ' ', 'i', 's', 't', ' ', 'l', 'e', 'e', 'r'
+	' ',   1,  'v', FW_REV_MAJOR+'0' , '.', FW_REV_MINOR+'0',' ','-',
+        ' ','B', 'l', 'i', 'n', 'k', 'e', 'n', 'r', 'o', 'c', 'k', 'e','t', 
+        ' ', 'S', 'p', 'e', 'i', 'c', 'h','e', 'r', ' ', 'i', 's', 't', 
+        ' ', 'l', 'e', 'e', 'r',' ' 
 };
 #else
+
 const uint8_t PROGMEM emptyPattern[] = {
-	0x10, 0x28,
-	0xd0, 0x00,
-	' ',   1, ' ', 'B', 'l', 'i', 'n', 'k', 'e', 'n', 'r', 'o', 'c', 'k', 'e',
-	't', ' ', 'v', '1', '.', '1', ' ', '-', ' ', 'S', 't', 'o', 'r', 'a', 'g',
-	'e', ' ', 'i', 's', ' ', 'e', 'm', 'p', 't', 'y'
+        0x10, 0x28,
+        0xd0, 0x00,
+        ' ',   1, 'v', FW_REV_MAJOR+'0' , '.', FW_REV_MINOR+'0',' ','-',
+        ' ','B', 'l', 'i', 'n', 'k', 'e', 'n', 'r', 'o', 'c', 'k', 'e','t', 
+        ' ', 'S', 't', 'o', 'r', 'a', 'g','e', ' ', 'i', 's', 
+        ' ', 'e', 'm', 'p', 't', 'y'
 };
+
 #endif
+
 
 #ifdef LANG_DE
 const uint8_t PROGMEM timeoutPattern[] = {
