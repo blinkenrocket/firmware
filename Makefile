@@ -1,6 +1,7 @@
 MCU ?= attiny88
 #AVRDUDE_PROGRAMMER ?= usbasp
-AVRDUDE_PROGRAMMER ?= dragon_isp
+#AVRDUDE_PROGRAMMER ?= dragon_isp
+AVRDUDE_PROGRAMMER ?= usbtiny
 
 AVRCC ?= avr-gcc
 AVRCXX ?= avr-g++
