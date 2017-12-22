@@ -73,7 +73,7 @@ uint8_t Storage::i2c_start_read()
 	if (!(TWSR & 0x18)) // 0x08 == START ok, 0x10 == RESTART ok
 		return I2C_START_ERR;
 
-	// Note: The R byte ("... | 1") causes the TWI momodule to switch to
+	// Note: The R byte ("... | 1") causes the TWI module to switch to
 	// Master Receive mode
 	TWDR = (I2C_EEPROM_ADDR << 1) | 1;
 	TWCR = _BV(TWINT) | _BV(TWEN);
