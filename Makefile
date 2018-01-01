@@ -37,7 +37,7 @@ CFILES   = $(wildcard src/*.c)
 CXXFILES = $(wildcard src/*.cc)
 OBJECTS  = ${CFILES:src/%.c=build/%.o} ${CXXFILES:src/%.cc=build/%.o} ${ASFILES:src/%.S=build/%.o}
 
-all: build build/main.elf flash
+all: build build/main.elf
 
 build:
 	mkdir -p build
