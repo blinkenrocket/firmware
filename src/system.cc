@@ -1,6 +1,6 @@
 /* Name: system.cc
  * Version: 2.0
- * Copyright (C) 2016 by Daniel Friesel
+ * Copyright (C) 2016 by Birte Kristina Friesel
  *
  * Modifications for V2.0 (sine-wave-based transmission and ADC/sampling) 
  * by Chris Veigl, Overflo, Chris Hager 

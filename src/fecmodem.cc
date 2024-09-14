@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 by Daniel Friesel
+ * Copyright (C) 2016 by Birte Kristina Friesel
  *
  * License: You may use, redistribute and/or modify this file under the terms
  * of either:
