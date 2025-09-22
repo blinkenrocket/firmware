@@ -75,3 +75,9 @@ presence anymore"). This is quite improbable, though.
 
 Please remove and insert the battery again. Make sure that the battery has enough
 current and replcace the battery if the LED are dark.
+
+## Wrong display ordered
+
+If you ordered the wrong display (AS instead BS variant, e.g. for Mini Rocket 
+788AS (Common Cathode) instead 788BS (Common Anode), you can set the build 
+parameter `INVERTED=1` to build a corresponding firmware.

@@ -12,7 +12,7 @@
 
 // to display firmware version (v2.1) when storage is empty on first turn on
 #define FW_REV_MAJOR  2
-#define FW_REV_MINOR  1
+#define FW_REV_MINOR  2
 
 
 

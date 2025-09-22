@@ -20,6 +20,10 @@ ifeq (${LANG},DE)
 	SHARED_FLAGS += -DLANG_DE
 endif
 
+ifeq (${INVERTED},1)
+        SHARED_FLAGS += -DINVERTED
+endif
+
 CFLAGS += ${SHARED_FLAGS} -std=c11
 CXXFLAGS += ${SHARED_FLAGS} -std=c++11 -fno-rtti -fno-exceptions
 
